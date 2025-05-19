@@ -1,5 +1,6 @@
 import json
 import time
+from google.cloud.sql.connector import Connector
 import pg8000
 import functions_framework
 import logging
@@ -14,6 +15,9 @@ DB_NAME = os.getenv("DB_NAME")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+# Create a connector instance (reuse across requests)
+connector = Connector()
+
 # Global connection pool
 connection = None
 
@@ -26,13 +30,14 @@ def connect():
     while retry_count < max_retries:
         try:
             logging.info(f"Attempting to connect to database (attempt {retry_count + 1}/{max_retries})")
-            conn = pg8000.connect(
-                host=DB_HOST,
-                port=DB_PORT,
+            conn = connector.connect(
+                INSTANCE_CONNECTION_NAME,
+                "pg8000",
                 user=DB_USER,
                 password=DB_PASSWORD,
-                database=DB_NAME,
-                timeout=30  # seconds
+                db=DB_NAME,
+                # Add connection timeout parameters
+                timeout=30,  # seconds
             )
             logging.info("Successfully connected to database")
             return conn
